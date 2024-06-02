@@ -2,10 +2,10 @@
 ob_start();
 session_start();
 
-include "../koneksi.php";
+include "../../koneksi.php";
 
 // Menentukan jumlah data per halaman
-$limit = 5; // Jumlah data per halaman
+$limit = 10; // Jumlah data per halaman
 $page = isset($_POST['page']) ? intval($_POST['page']) : 1;
 $start = ($page - 1) * $limit;
 $query = isset($_POST['query']) ? $_POST['query'] : '';
@@ -23,21 +23,19 @@ if (!empty($query)) {
   $result = $stmt->get_result();
   $data_pasien = $result->fetch_all(MYSQLI_ASSOC);
 
-  $total_stmt = $conn->prepare("SELECT COUNT(*) FROM data_pasien WHERE id_user=? AND (id_pasien LIKE ? OR nama_depan LIKE ? OR nama_belakang LIKE ?)");
-  $total_stmt->bind_param("isss", $id_user, $query, $query, $query);
+  $total_stmt = $conn->prepare("SELECT COUNT(*) FROM data_pasien WHERE id_pasien LIKE ? OR nama_depan LIKE ? OR nama_belakang LIKE ?");
+  $total_stmt->bind_param("sss", $query, $query, $query);
   $total_stmt->execute();
   $total_stmt->bind_result($total_records);
   $total_stmt->fetch();
 } else {
-  $stmt = $conn->prepare("SELECT * FROM data_pasien WHERE id_user=? LIMIT ?, ?");
-  $stmt->bind_param("iii", $id_user,$start, $limit);
+  $stmt = $conn->prepare("SELECT * FROM data_pasien LIMIT ?, ?");
+  $stmt->bind_param("ii",$start, $limit);
   $stmt->execute();
   $result = $stmt->get_result();
   $data_pasien = $result->fetch_all(MYSQLI_ASSOC);
 
-  $total_stmt = $conn->prepare("SELECT COUNT(*) FROM data_pasien WHERE id_user=?");
-  // $total_stmt->execute();
-  $total_stmt->bind_param("s",$id_user);
+  $total_stmt = $conn->prepare("SELECT COUNT(*) FROM data_pasien");
   $total_stmt->execute();
   $total_stmt->bind_result($total_records);
   $total_stmt->fetch();

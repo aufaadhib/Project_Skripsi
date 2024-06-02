@@ -7,27 +7,31 @@ if (!isset($username)) {
 }
 include "../koneksi.php";
 
-// // Mengambil Data Sesuai Session
-// $username = $_SESSION['username'];
-// $query="SELECT * FROM user where username= '$username'";
-// Memasukkan Kedalam array hasil dari query
-if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['id_pasien'])) {
-// Escape input untuk mencegah serangan SQL Injection
-$id_pasien = mysqli_real_escape_string($conn, $_POST['id_pasien']);
-$query = "SELECT tanggal_berobat, berat_badan, tinggi_badan FROM riwayat_berobat WHERE id_pasien='$id_pasien'";
-$result = mysqli_query($conn, $query);
-
-// Proses data
-$data = array();
-
-while ($row = mysqli_fetch_assoc($result)) {
-    $data[] = $row;
+// Buat serangkaian tanggal untuk 7 hari terakhir
+$today = date('Y-m-d');
+$dates = array();
+for ($i = 6; $i >= 0; $i--) {
+    $dates[] = date('Y-m-d', strtotime("-$i days", strtotime($today)));
 }
+// Query untuk mengambil data tanggal_berobat dari tabel di database Anda
+$query = "SELECT tanggal_berobat, COUNT(*) as jumlah_kunjungan FROM riwayat_berobat WHERE tanggal_berobat >= DATE_SUB(CURDATE(), INTERVAL 7 DAY) GROUP BY tanggal_berobat ORDER BY tanggal_berobat";
+
+$result = $conn->query($query);
+
+// Inisialisasi array untuk menyimpan jumlah kunjungan pasien
+$jumlah_kunjungan = array_fill_keys($dates, 0);
+if ($result->num_rows > 0) {
+  while($row = $result->fetch_assoc()) {
+      // Menambahkan jumlah kunjungan pasien ke dalam array
+      $tanggal = $row['tanggal_berobat'];
+      $jumlah = $row['jumlah_kunjungan'];
+      $jumlah_kunjungan[$tanggal] = $jumlah;
+  }
 }
-
-// Konversi data ke format JSON
-$data_json = json_encode($data);
-
+// Inisialisasi array untuk menyimpan data dari database
+// Format data untuk Chart.js
+$labels = array_keys($jumlah_kunjungan);
+$dataPoints = array_values($jumlah_kunjungan);
 
 ?>
 
@@ -231,16 +235,16 @@ $data_json = json_encode($data);
           <div class="flex items-center justify-between">
             <div class="widget-label">
               <h3>
-                Jumlah Kunjungan
+                Kunjungan Pasien Hari Ini
                 <?php
-                $query = "SELECT COUNT(id_riwayat) AS total_kunjungan FROM riwayat_berobat WHERE id_pasien='$id_pasien'";
+                $query = "SELECT COUNT(tanggal_berobat) AS total_kunjungan FROM riwayat_berobat WHERE tanggal_berobat=CURDATE()";
                 $result = mysqli_query($conn, $query);
                 $row = mysqli_fetch_assoc($result);
                 $total_kunjungan = $row['total_kunjungan'];
-                ?>
+                ?> 
               </h3>
               <h1>
-                <?php echo $total_kunjungan
+                <?php echo $total_kunjungan." Pasien"
                 ?>
               </h1>
             </div>
@@ -253,16 +257,16 @@ $data_json = json_encode($data);
           <div class="flex items-center justify-between">
             <div class="widget-label">
               <h3>
-                Kunjungan Terakhir
+                Rencana Kunjungan Pasien Hari Ini
                 <?php
-                $query = "SELECT MAX(tanggal_berobat) AS kunjungan_terakhir FROM riwayat_berobat  WHERE id_pasien='$id_pasien'";
+                $query = "SELECT COUNT(rencana_berobat) AS total_rencana FROM riwayat_berobat WHERE rencana_berobat=CURDATE()";
                 $result = mysqli_query($conn, $query);
                 $row = mysqli_fetch_assoc($result);
-                $kunjungan_terakhir = $row['kunjungan_terakhir'];
+                $total_rencana = $row['total_rencana'];
                 ?>
               </h3>
               <h1>
-              <?php echo $kunjungan_terakhir
+              <?php echo $total_rencana." Pasien"
                 ?>
               </h1>
             </div>
@@ -333,7 +337,7 @@ $data_json = json_encode($data);
             // Kirim notifikasi email menggunakan Ajax atau lakukan pengiriman di sini
             console.log('Notifikasi email dikirim!');
         }
-    </script>
+     </script>
               </h1>
             </div>
             <span class="icon widget-icon text-red-500"><i class="mdi mdi-finance mdi-48px"></i></span>
@@ -347,7 +351,7 @@ $data_json = json_encode($data);
       <header class="card-header">
         <p class="card-header-title">
           <span class="icon"><i class="mdi mdi-finance"></i></span>
-          Data Observasi Berat Badan
+          Data Kunjungan Pasien 7 Hari Terakhir
         </p>
         <a href="#" class="card-header-icon">
           <span class="icon"><i class="mdi mdi-reload"></i></span>
@@ -762,65 +766,55 @@ $data_json = json_encode($data);
 
 <!-- Grafik Berat Badan -->
 <script>
-        var data = <?php echo $data_json; ?>;
+        var labels = <?php echo json_encode($labels); ?>;
+        var dataPoints = <?php echo json_encode($dataPoints); ?>;
 
-        // Siapkan label dan data untuk grafik
-        var labels = data.map(function(item) {
-            return item.tanggal_berobat;
-        });
+        // var dataset = {
+        //     label: 'Berat Badan',
+        //     data: data.map(function(item) {
+        //         return item.jumlah_kunjungan;
+        //     }),
+        //     borderColor: 'blue',
+        //     fill: false
+        // };
 
-        var dataset = {
-            label: 'Berat Badan',
-            data: data.map(function(item) {
-                return item.berat_badan;
-            }),
-            borderColor: 'blue',
-            fill: false
-        };
-
-        // Siapkan data untuk garis tambahan
-        var additionalDataset = {
-            label: 'Tambah 1',
-            data: data.map(function(item, index) {
-                return index * 10;
-            }),
-            borderColor: 'red',
-            borderDash: [5, 5], // Garis putus-putus
-            fill: false
-        };
+        // // Siapkan data untuk garis tambahan
+        // var additionalDataset = {
+        //     label: 'Tambah 1',
+        //     data: data.map(function(item, index) {
+        //         return index * 10;
+        //     }),
+        //     borderColor: 'red',
+        //     borderDash: [5, 5], // Garis putus-putus
+        //     fill: false
+        // };
 
         var config = {
-            type: 'line',
+            type: 'bar',
             data: {
                 labels: labels,
-                datasets: [dataset, additionalDataset]
+                datasets: [{
+                    label: 'Jumlah Kunjungan Pasien',
+                    data: dataPoints,
+                    backgroundColor: 'rgba(54, 162, 235, 0.5)', // Warna latar belakang batang
+                    borderColor: 'rgba(54, 162, 235, 1)', // Warna garis batang
+                    borderWidth: 1
+                }]
             },
             options: {
-                responsive: true,
-                title: {
-                    display: true,
-                    text: 'Data Observasi Pasien'
-                },
                 scales: {
-                    xAxes: [{
-                        scaleLabel: {
-                            display: true,
-                            labelString: 'Waktu'
-                        }
-                    }],
                     yAxes: [{
-                        scaleLabel: {
-                            display: true,
-                            labelString: 'Berat Badan'
-                        },
-                        gridLines: {
-                            display: false // Menonaktifkan gridlines pada sumbu Y
+                        ticks: {
+                            beginAtZero: true, // Mulai sumbu Y dari 0
+                            stepSize: 1 // Atur langkah ukuran sumbu Y menjadi 1
+                            
                         }
                     }]
                 },
                 legend: {
                     display: false // Menonaktifkan legend
                 }
+                
             }
         };
 

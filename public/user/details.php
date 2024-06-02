@@ -103,11 +103,13 @@ $data_json_kms_lakilaki = json_encode($data);
     gtag('js', new Date());
     gtag('config', 'UA-130795909-1');
   </script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> -->
+  <!-- <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script> -->
+
   <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.8.0/Chart.min.js"></script>
 
 </head>
-<body>
+<!-- <body> -->
 
 <div id="app">
 <!-- Awal Navbar -->
@@ -801,7 +803,8 @@ $data_json_kms_lakilaki = json_encode($data);
         });
 
         var dataset = {
-            label: 'Berat Badan',
+            label: 'Berat Badan Anak',
+            borderWidth: 2,
             data: data.map(function(item) {
                 return item.berat_badan;
             }),
@@ -809,41 +812,73 @@ $data_json_kms_lakilaki = json_encode($data);
             fill: false
         };
 
-        // Data Grafik Laki-Laki 
-        var berat_normal = {
-            label: 'Normal',
+        var garis_hitam_atas_bb = {
+            label: 'Risiko berat badan lebih tinggi',
+            borderWidth: 1,
             data: data_laki.map(function(item) {
-                return item.normal;
+                return item.garis_hitam_atas_bb;
+            }),
+            borderColor: 'black',
+            fill: false
+        };
+
+        var garis_merah_atas_bb = {
+            label: 'Risiko berat badan lebih',
+            borderWidth: 1,
+            data: data_laki.map(function(item) {
+                return item.garis_merah_atas_bb;
+            }),
+            borderColor: 'red',
+            fill: false
+        };
+
+        
+        var normal_bb = {
+            label: 'Berat badan normal',
+            borderWidth: 1,
+            data: data_laki.map(function(item) {
+                return item.normal_bb;
             }),
             borderColor: 'green',
             fill: false
         };
 
-        var obesitas = {
-            label: 'Obesitas',
+        var garis_merah_bawah_bb = {
+            label: 'Berat badan kurang',
+            borderWidth: 1,
             data: data_laki.map(function(item) {
-                return item.batas_atas;
+                return item.garis_merah_bawah_bb;
             }),
             borderColor: 'red',
             fill: false
         };
 
-        // Siapkan data untuk garis tambahan
-        var additionalDataset = {
-            label: 'Tambah 1',
-            data: data.map(function(item, index) {
-                return index * 10;
+        var garis_hitam_bawah_bb = {
+            label: 'Berat badan sangat kurang',
+            borderWidth: 1,
+            data: data_laki.map(function(item) {
+                return item.garis_hitam_bawah_bb;
             }),
-            borderColor: 'red',
-            borderDash: [5, 5], // Garis putus-putus
+            borderColor: 'black',
             fill: false
         };
+
+        // Siapkan data untuk garis tambahan
+        // var additionalDataset = {
+        //     label: 'Tambah 1',
+        //     data: data.map(function(item, index) {
+        //         return index * 10;
+        //     }),
+        //     borderColor: 'red',
+        //     borderDash: [5, 5], // Garis putus-putus
+        //     fill: false
+        // };
 
         var config = {
             type: 'line',
             data: {
                 labels: labels,
-                datasets: [dataset, additionalDataset, berat_normal, obesitas]
+                datasets: [dataset,garis_hitam_atas_bb, garis_merah_atas_bb, normal_bb, garis_merah_bawah_bb, garis_hitam_bawah_bb]
             },
             options: {
                 responsive: true,
@@ -870,7 +905,18 @@ $data_json_kms_lakilaki = json_encode($data);
                 },
                 legend: {
                     display: false // Menonaktifkan legend
-                }
+                },
+                tooltips: {
+            mode: 'nearest',
+            intersect: false,
+            backgroundColor: 'rgba(230, 230, 230, 0.8)', // Warna latar belakang
+    titleFontColor: 'black', // Warna judul tooltip
+    bodyFontColor: 'black', // Warna teks tooltip
+    titleFontSize: 14, // Ukuran font judul tooltip
+    bodyFontSize: 12, // Ukuran font teks tooltip
+    
+
+        }
             }
         };
 
@@ -916,7 +962,8 @@ $data_json_kms_lakilaki = json_encode($data);
                         scaleLabel: {
                             display: true,
                             labelString: 'Waktu'
-                        }
+                        },
+                        
                     }],
                     yAxes: [{
                         scaleLabel: {
